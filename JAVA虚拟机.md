@@ -46,4 +46,33 @@
    * 元空间中的内存释放**以类加载器为单位**，当堆中类加载器内存释放时，对应的元空间中的类元信息也会释放。
    * 在整个类加载没了，才会把元空间中的对应的类清除，自定义的类加载器才可被释放。
   
-   
+  
+## 02、JVM内存参数
+    先看一个问题：
+    对于JVM内存配置参数：-Xmx10240m -Xms10240m -Xmn5210m -XX:SurvivorRatio=3 其最小内存值和Survivor区总大小分别是？
+    答:通过 （图按大小设置） 参数了解，可以知道堆内存的最大值和最小值都为10G，新生代的内存为5G，则老年代内存也会分到5G；再看 (图按比例设置)参数比 和 -XX:SurvivorRatio=3 了解，
+
+### 参数了解
+  * -Xmx 最小堆内存（包括新生代和老生代）
+  * -Xms 最大堆内存（同上）
+  * 一般建议 -Xms 与 -Xmx 设置为大小相等，即不需要保留内存，不需要从小到大增长，这样性能较好
+  * -Xmn 新生代大小，相当于同时设置 -XX:NewSize 与 -XX:MaxNewSize 并且取值相等
+     * -XX:NewSize 新生化最小值
+     * -XX:MaxNewSize 新生代最大值
+     * 一般不建议设置，由 JVM 自己控制
+  * 如果 最大值 与 最小值 设置不一样，那它们之间有区间则称**保留**，一开始不会占用那么多内存，随着使用内存越来越多，会逐步使用这部分保留内存。
+  * 如下图：  
+![按大小设置](https://user-images.githubusercontent.com/49053144/203018981-6fbf8930-031e-47e2-8122-866a969757b3.png)
+  * 上面是**按大小设置**堆内存的参数，下图**按比例设置**
+![按比例设置](https://user-images.githubusercontent.com/49053144/203019603-f21f06b0-8d88-4d84-8527-ab1420f9fd84.png)
+  * 如上图：**-XX:NewRatio=2:1** 表示老年代占两份，新生代占一份；**-XX:SurvivorRatio=4:1** 表示新生代分成6份，伊甸园占4份，form 和 to 各点一份。
+  * **元空间内存设置**如下图：
+![元空间内存设置](https://user-images.githubusercontent.com/49053144/203020673-33f0e289-3d4b-4905-a720-869c3daf82dd.png)
+  * class space： 存储类的基本信息
+  * -XX:CompressedClassSpaceSize: 控制最大值
+  * non-class space: 存储除类的基本信息以外的其它信息（如 方法字节码、注解等）
+  * -XX:MaxMetaspaceSize：控制 class space 和 non-class space 总大小
+  **注意**
+  * 这里 -XX:CompressedClassSpaceSize 这段空间还与是否开启了指针压缩有关，可认为指针压缩默认开启
+
+
