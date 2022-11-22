@@ -50,7 +50,9 @@
 ## 02、JVM内存参数
     先看一个问题：
     对于JVM内存配置参数：-Xmx10240m -Xms10240m -Xmn5210m -XX:SurvivorRatio=3 其最小内存值和Survivor区总大小分别是？
-    答:通过 （图按大小设置） 参数了解，可以知道堆内存的最大值和最小值都为10G，新生代的内存为5G，则老年代内存也会分到5G；再看 (图按比例设置)参数比 和 -XX:SurvivorRatio=3 了解，
+    答:通过 （图按大小设置） 参数了解，可以知道堆内存的最大值和最小值都为10G，新生代的内存为5G，则老年代内存也会分到5G；
+       再看 (图按比例设置)参数比 和 -XX:SurvivorRatio=3 了解，eden 与 from（from和to大小一样）比为3:1，则 5120m/5=1024m，
+       Survivor总大小 = 1024m*2 = 2048m = 2G。
 
 ### 参数了解
   * -Xmx 最小堆内存（包括新生代和老生代）
@@ -67,12 +69,35 @@
 ![按比例设置](https://user-images.githubusercontent.com/49053144/203019603-f21f06b0-8d88-4d84-8527-ab1420f9fd84.png)
   * 如上图：**-XX:NewRatio=2:1** 表示老年代占两份，新生代占一份；**-XX:SurvivorRatio=4:1** 表示新生代分成6份，伊甸园占4份，form 和 to 各点一份。
   * **元空间内存设置**如下图：
+  
 ![元空间内存设置](https://user-images.githubusercontent.com/49053144/203020673-33f0e289-3d4b-4905-a720-869c3daf82dd.png)
+
   * class space： 存储类的基本信息
   * -XX:CompressedClassSpaceSize: 控制最大值
   * non-class space: 存储除类的基本信息以外的其它信息（如 方法字节码、注解等）
   * -XX:MaxMetaspaceSize：控制 class space 和 non-class space 总大小
   **注意**
   * 这里 -XX:CompressedClassSpaceSize 这段空间还与是否开启了指针压缩有关，可认为指针压缩默认开启
+
+### 其他参数设置
+* **代码缓存内存设置**
+
+![代码缓存内存设置](https://user-images.githubusercontent.com/49053144/203265175-9b83938a-83cc-427e-8822-a9e81201d8a5.png)
+
+  * 使用场景在JIT 计时编译器，缓存编译后的机器码的
+  * 当 -XX:ReservedCodeCacheSize < 240m 时，所有优化机器代码不加区分一起
+  * 则会分成 三个区域
+    * non-nmethods - JVM 自己用的代码
+    * profiled nmethods - 部分优化的机器码
+    * non-profiled nmethods - 完全优化的机器码
+    
+* **线程内存设置**
+
+![线程内存设置](https://user-images.githubusercontent.com/49053144/203261601-eb4416a6-a2a7-45ff-92c3-9becdd760d4d.png)
+
+> ***官方参考文档***
+>
+> * https://docs.oracle.com/en/java/javase/11/tools/java.html#GUID-3B1CE181-CD30-4178-9602-230B800D4FAE
+
 
 
