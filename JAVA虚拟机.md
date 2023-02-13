@@ -114,7 +114,7 @@
 
 标记清除法
 
-![image-20210831211008162](https://github.com/curlypotato/LearnNotes/blob/master/img/image-20210831211008162.png)
+![image-20210831211008162](/img/image-20210831211008162.png)
 
 解释：
 
@@ -150,7 +150,7 @@
 
 标记复制法
 
-![image-20210831212125813](https://github.com/curlypotato/LearnNotes/blob/master/img/image-20210831211641241.png)
+![image-20210831212125813](/img/image-20210831211641241.png)
 
 解释：
 
@@ -186,39 +186,39 @@ GC 要点：
 
 1. 伊甸园 eden，最初对象都分配到这里，与幸存区 survivor（分成 from 和 to）合称新生代，
 
-![image-20210831213622704](https://github.com/curlypotato/LearnNotes/blob/master/img/image-20210831213622704.png)
+![image-20210831213622704](/img/image-20210831213622704.png)
 
 2. 当伊甸园内存不足，标记伊甸园与 from（现阶段没有）的存活对象
 
-![image-20210831213640110](https://github.com/curlypotato/LearnNotes/blob/master/img/image-20210831213640110.png)
+![image-20210831213640110](/img/image-20210831213640110.png)
 
 3. 将存活对象采用复制算法复制到 to 中，复制完毕后，伊甸园和 from 内存都得到释放
 
-![image-20210831213657861](https://github.com/curlypotato/LearnNotes/blob/master/img/image-20210831213657861.png)
+![image-20210831213657861](/img/image-20210831213657861.png)
 
 4. 将 from 和 to 交换位置
 
-![image-20210831213708776](https://github.com/curlypotato/LearnNotes/blob/master/img/image-20210831213708776.png)
+![image-20210831213708776](/img/image-20210831213708776.png)
 
 5. 经过一段时间后伊甸园的内存又出现不足
 
-![image-20210831213724858](https://github.com/curlypotato/LearnNotes/blob/master/img/image-20210831213724858.png)
+![image-20210831213724858](/img/image-20210831213724858.png)
 
 6. 标记伊甸园与 from（现阶段没有）的存活对象
 
-![image-20210831213737669](https://github.com/curlypotato/LearnNotes/blob/master/img/image-20210831213737669.png)
+![image-20210831213737669](/img/image-20210831213737669.png)
 
 7. 将存活对象采用复制算法复制到 to 中
 
-![image-20210831213804315](https://github.com/curlypotato/LearnNotes/blob/master/img/image-20210831213804315.png)
+![image-20210831213804315](/img/image-20210831213804315.png)
 
 8. 复制完毕后，伊甸园和 from 内存都得到释放
 
-![image-20210831213815371](https://github.com/curlypotato/LearnNotes/blob/master/img/image-20210831213815371.png)
+![image-20210831213815371](/img/image-20210831213815371.png)
 
 9. 将 from 和 to 交换位置
 
-![image-20210831213826017](https://github.com/curlypotato/LearnNotes/blob/master/img/image-20210831213826017.png)
+![image-20210831213826017](/img/image-20210831213826017.png)
 
 10. 老年代 old，当幸存区对象熬过几次回收（最多15次），晋升到老年代（幸存区内存不足或大对象会导致提前晋升）
 
@@ -264,3 +264,341 @@ GC 要点：
 
 <img src="img/image-20210831215158311.png" alt="image-20210831215158311" style="zoom:50%;" />
 
+
+
+**并发漏标问题**
+
+比较先进的垃圾回收器都支持**并发标记**，即在标记过程中，用户线程仍然能工作。但这样带来一个新的问题，如果用户线程修改了对象引用，那么就存在漏标问题。例如：
+
+1. 如图所示标记工作尚未完成
+
+<img src="img/image-20210831215846876.png" alt="image-20210831215846876" style="zoom:50%;" />
+
+2. 用户线程同时在工作，断开了第一层 3、4 两个对象之间的引用，这时对于正在处理 3 号对象的垃圾回收线程来讲，它会将 4 号对象当做是白色垃圾
+
+<img src="img/image-20210831215904073.png" alt="image-20210831215904073" style="zoom:50%;" />
+
+3. 但如果其他用户线程又建立了 2、4 两个对象的引用，这时因为 2 号对象是黑色已处理对象了，因此垃圾回收线程不会察觉到这个引用关系的变化，从而产生了漏标
+
+<img src="img/image-20210831215919493.png" alt="image-20210831215919493" style="zoom:50%;" />
+
+4. 如果用户线程让黑色对象引用了一个新增对象，一样会存在漏标问题
+
+<img src="img/image-20210831220004062.png" alt="image-20210831220004062" style="zoom:50%;" />
+
+因此对于**并发标记**而言，必须解决漏标问题，也就是要记录标记过程中的变化。有两种解决方法：
+
+1. Incremental Update 增量更新法，CMS 垃圾回收器采用
+   * 思路是拦截每次赋值动作，只要赋值发生，被赋值的对象就会被记录下来，在重新标记阶段再确认一遍
+2. Snapshot At The Beginning，SATB 原始快照法，G1 垃圾回收器采用
+   * 思路也是拦截每次赋值动作，不过记录的对象不同，也需要在重新标记阶段对这些对象二次处理
+   * 新加对象会被记录
+   * 被删除引用关系的对象也被记录
+
+
+
+**垃圾回收器 - Parallel GC**
+
+* eden 内存不足发生 Minor GC，采用标记复制算法，需要暂停用户线程
+* old 内存不足发生 Full GC，采用标记整理算法，需要暂停用户线程
+
+* **注重吞吐量**
+
+**垃圾回收器 - ConcurrentMarkSweep GC**
+
+* 它是工作在 old 老年代，支持**并发标记**的一款回收器，采用**并发清除**算法
+  * 并发标记时不需暂停用户线程
+  * 重新标记时仍需暂停用户线程
+
+* 如果并发失败（即回收速度赶不上创建新对象速度），会触发 Full GC
+
+* **注重响应时间**
+
+**垃圾回收器 - G1 GC**
+
+* **响应时间与吞吐量兼顾**
+* 划分成多个区域，每个区域都可以充当 eden，survivor，old， humongous，其中 humongous 专为大对象准备
+* 分成三个阶段：新生代回收、并发标记、混合收集
+* 如果并发失败（即回收速度赶不上创建新对象速度），会触发 Full GC
+
+
+
+**G1 回收阶段 - 新生代回收**
+
+1. 初始时，所有区域都处于空闲状态
+
+<img src="img/image-20210831222639754.png" alt="image-20210831222639754" style="zoom:50%;" />
+
+2. 创建了一些对象，挑出一些空闲区域作为伊甸园区存储这些对象
+
+<img src="img/image-20210831222653802.png" alt="image-20210831222653802" style="zoom:50%;" />
+
+3. 当伊甸园需要垃圾回收时，挑出一个空闲区域作为幸存区，用复制算法复制存活对象，需要暂停用户线程
+
+<img src="img/image-20210831222705814.png" alt="image-20210831222705814" style="zoom:50%;" />
+
+4. 复制完成，将之前的伊甸园内存释放
+
+<img src="img/image-20210831222724999.png" alt="image-20210831222724999" style="zoom:50%;" />
+
+5. 随着时间流逝，伊甸园的内存又有不足
+
+<img src="img/image-20210831222737928.png" alt="image-20210831222737928" style="zoom:50%;" />
+
+6. 将伊甸园以及之前幸存区中的存活对象，采用复制算法，复制到新的幸存区，其中较老对象晋升至老年代
+
+<img src="img/image-20210831222752787.png" alt="image-20210831222752787" style="zoom:50%;" />
+
+7. 释放伊甸园以及之前幸存区的内存
+
+<img src="img/image-20210831222803281.png" alt="image-20210831222803281" style="zoom:50%;" />
+
+**G1 回收阶段 - 并发标记与混合收集**
+
+1. 当老年代占用内存超过阈值后，触发并发标记，这时无需暂停用户线程
+
+<img src="img/image-20210831222813959.png" alt="image-20210831222813959" style="zoom:50%;" />
+
+2. 并发标记之后，会有重新标记阶段解决漏标问题，此时需要暂停用户线程。这些都完成后就知道了老年代有哪些存活对象，随后进入混合收集阶段。此时不会对所有老年代区域进行回收，而是根据**暂停时间目标**优先回收价值高（存活对象少）的区域（这也是 Gabage First 名称的由来）。
+
+<img src="img/image-20210831222828104.png" alt="image-20210831222828104" style="zoom:50%;" />
+
+3. 混合收集阶段中，参与复制的有 eden、survivor、old，下图显示了伊甸园和幸存区的存活对象复制
+
+<img src="img/image-20210831222841096.png" alt="image-20210831222841096" style="zoom:50%;" />
+
+4. 下图显示了老年代和幸存区晋升的存活对象的复制
+
+<img src="img/image-20210831222859760.png" alt="image-20210831222859760" style="zoom:50%;" />
+
+5. 复制完成，内存得到释放。进入下一轮的新生代回收、并发标记、混合收集
+
+<img src="img/image-20210831222919182.png" alt="image-20210831222919182" style="zoom:50%;" />
+
+## 4. 内存溢出
+
+**要求**
+
+* 能够说出几种典型的导致内存溢出的情况
+
+
+
+**典型情况**
+
+* 误用线程池导致的内存溢出
+  * 参考 JavaLearn项目中learJVM.TestOomThreadPool
+* 查询数据量太大导致的内存溢出
+  * 参考 JavaLearn项目中learJVM.TestOomTooManyObject
+* 动态生成类导致的内存溢出
+  * 参考 JavaLearn项目中learJVM.TestOomTooManyClass
+
+
+
+## 5. 类加载
+
+**要求**
+
+* 掌握类加载阶段
+* 掌握类加载器
+* 理解双亲委派机制
+
+
+
+**类加载过程的三个阶段**
+
+1. 加载
+
+   1. 将类的字节码载入方法区，并创建类.class 对象
+
+   2. 如果此类的父类没有加载，先加载父类
+   3. 加载是懒惰执行
+
+2. 链接
+   1. 验证 – 验证类是否符合 Class 规范，合法性、安全性检查
+   2. 准备 – 为 static 变量分配空间，设置默认值
+   3. 解析 – 将常量池的符号引用解析为直接引用
+
+3. 初始化
+   1. 静态代码块、static 修饰的变量赋值、static final 修饰的引用类型变量赋值，会被合并成一个 `<cinit>` 方法，在初始化时被调用
+   2. static final 修饰的基本类型变量赋值，在链接阶段就已完成
+   3. 初始化是懒惰执行
+
+> ***验证手段***
+>
+> * 使用 jps 查看进程号
+> * 使用 jhsdb 调试，执行命令 `jhsdb.exe hsdb` 打开它的图形界面
+>   * Class Browser 可以查看当前 jvm 中加载了哪些类
+>   * 控制台的 universe 命令查看堆内存范围
+>   * 控制台的 g1regiondetails 命令查看 region 详情
+>   * `scanoops 起始地址 结束地址 对象类型` 可以根据类型查找某个区间内的对象地址
+>   * 控制台的 `inspect 地址` 指令能够查看这个地址对应的对象详情
+> * 使用 javap 命令可以查看 class 字节码
+
+
+
+>***代码说明***
+>
+>* JavaLearn项目中learJVM.loader.TestLazy - 验证类的加载是懒惰的，用到时才触发类加载
+>* JavaLearn项目中learJVM.loader.TestFinal - 验证使用 final 修饰的变量不会触发类加载
+
+
+
+**jdk 8 的类加载器**
+
+| **名称**                | **加载哪的类**        | **说明**                       |
+| ----------------------- | --------------------- | ------------------------------ |
+| Bootstrap ClassLoader   | JAVA_HOME/jre/lib     | 无法直接访问                   |
+| Extension ClassLoader   | JAVA_HOME/jre/lib/ext | 上级为 Bootstrap，显示为  null |
+| Application ClassLoader | classpath             | 上级为 Extension               |
+| 自定义类加载器          | 自定义                | 上级为 Application             |
+
+
+
+**双亲委派机制**
+
+所谓的双亲委派，就是指优先委派上级类加载器进行加载，如果上级类加载器
+
+* 能找到这个类，由上级加载，加载后该类也对下级加载器可见
+* 找不到这个类，则下级类加载器才有资格执行加载
+
+双亲委派的目的有两点
+
+1. 让上级类加载器中的类对下级共享（反之不行），即能让你的类能依赖到 jdk 提供的核心类
+
+2. 让类的加载有优先次序，保证核心类优先加载
+
+
+
+**对双亲委派的误解**
+
+下面面试题的回答是错误的
+
+![image-20210901110910016](img/image-20210901110910016.png)
+
+错在哪了？
+
+* 自己编写类加载器就能加载一个假冒的 java.lang.System 吗? 答案是不行。
+
+* 假设你自己的类加载器用双亲委派，那么优先由启动类加载器加载真正的 java.lang.System，自然不会加载假冒的
+
+* 假设你自己的类加载器不用双亲委派，那么你的类加载器加载假冒的 java.lang.System 时，它需要先加载父类 java.lang.Object，而你没有用委派，找不到 java.lang.Object 所以加载会失败
+
+* **以上也仅仅是假设**。事实上操作你就会发现，自定义类加载器加载以 java. 打头的类时，会抛安全异常，在 jdk9 以上版本这些特殊包名都与模块进行了绑定，更连编译都过不了
+
+
+
+>***代码说明***
+>
+>* JavaLearn项目中learJVM.loader.TestJdk9ClassLoader - 演示类加载器与模块的绑定关系
+
+
+
+## 6. 四种引用
+
+**要求**
+
+* 掌握四种引用
+
+
+
+**强引用**
+
+1. 普通变量赋值即为强引用，如 A a = new A();
+
+2. 通过 GC Root 的引用链，如果强引用不到该对象，该对象才能被回收
+
+<img src="img/image-20210901111903574.png" alt="image-20210901111903574" style="zoom:80%;" />
+
+**软引用（SoftReference）**
+
+1. 例如：SoftReference a = new SoftReference(new A());
+
+2. 如果仅有软引用该对象时，首次垃圾回收不会回收该对象，如果内存仍不足，再次回收时才会释放对象
+
+3. 软引用自身需要配合引用队列来释放
+
+4. 典型例子是反射数据
+
+<img src="img/image-20210901111957328.png" alt="image-20210901111957328" style="zoom:80%;" />
+
+
+
+**弱引用（WeakReference）**
+
+1. 例如：WeakReference a = new WeakReference(new A());
+
+2. 如果仅有弱引用引用该对象时，只要发生垃圾回收，就会释放该对象
+
+3. 弱引用自身需要配合引用队列来释放
+
+4. 典型例子是 ThreadLocalMap 中的 Entry 对象
+
+<img src="img/image-20210901112107707.png" alt="image-20210901112107707" style="zoom:80%;" />
+
+
+
+**虚引用（PhantomReference）**
+
+1. 例如： PhantomReference a = new PhantomReference(new A(), referenceQueue);
+
+2. 必须配合引用队列一起使用，当虚引用所引用的对象被回收时，由 Reference Handler 线程将虚引用对象入队，这样就可以知道哪些对象被回收，从而对它们关联的资源做进一步处理
+
+3. 典型例子是 Cleaner 释放 DirectByteBuffer 关联的直接内存
+
+<img src="img/image-20210901112157901.png" alt="image-20210901112157901" style="zoom:80%;" />
+
+
+
+
+
+>***代码说明***
+>
+>* JavaLearn项目中learJVM.reference.TestPhantomReference - 演示虚引用的基本用法
+>* JavaLearn项目中learJVM.reference.TestWeakReference - 模拟 ThreadLocalMap, 采用引用队列释放 entry 内存
+
+
+
+## 7. finalize
+
+**要求**
+
+* 掌握 finalize 的工作原理与缺点
+
+
+
+**finalize**
+
+* 它是 Object 中的一个方法，如果子类重写它，垃圾回收时此方法会被调用，可以在其中进行资源释放和清理工作
+* 将资源释放和清理放在 finalize 方法中非常不好，非常影响性能，严重时甚至会引起 OOM，从 Java9 开始就被标注为 @Deprecated，不建议被使用了
+
+
+
+**finalize 原理**
+
+1. 对 finalize 方法进行处理的核心逻辑位于 java.lang.ref.Finalizer 类中，它包含了名为 unfinalized 的静态变量（双向链表结构），Finalizer 也可被视为另一种引用对象（地位与软、弱、虚相当，只是不对外，无法直接使用）
+2. 当重写了 finalize 方法的对象，在构造方法调用之时，JVM 都会将其包装成一个 Finalizer 对象，并加入 unfinalized 链表中
+
+![image-20210901121032813](img/image-20210901121032813.png)
+
+3. Finalizer 类中还有另一个重要的静态变量，即 ReferenceQueue 引用队列，刚开始它是空的。当狗对象可以被当作垃圾回收时，就会把这些狗对象对应的 Finalizer 对象加入此引用队列
+4. 但此时 Dog 对象还没法被立刻回收，因为 unfinalized -> Finalizer 这一引用链还在引用它嘛，为的是【先别着急回收啊，等我调完 finalize 方法，再回收】
+5. FinalizerThread 线程会从 ReferenceQueue 中逐一取出每个 Finalizer 对象，把它们从链表断开并真正调用 finallize 方法
+
+![image-20210901122228916](img/image-20210901122228916.png)
+
+6. 由于整个 Finalizer 对象已经从 unfinalized 链表中断开，这样没谁能引用到它和狗对象，所以下次 gc 时就被回收了
+
+
+
+**finalize 缺点**
+
+* 无法保证资源释放：FinalizerThread 是守护线程，代码很有可能没来得及执行完，线程就结束了
+* 无法判断是否发生错误：执行 finalize 方法时，会吞掉任意异常（Throwable）
+* 内存释放不及时：重写了 finalize 方法的对象在第一次被 gc 时，并不能及时释放它占用的内存，因为要等着 FinalizerThread 调用完 finalize，把它从 unfinalized 队列移除后，第二次 gc 时才能真正释放内存
+* 有的文章提到【Finalizer 线程会和我们的主线程进行竞争，不过由于它的优先级较低，获取到的CPU时间较少，因此它永远也赶不上主线程的步伐】这个显然是错误的，FinalizerThread 的优先级较普通线程更高，原因应该是 finalize 串行执行慢等原因综合导致
+
+
+
+> ***代码说明***
+>
+> * JavaLearn项目中learJVM.reference.TestFinalize - finalize 的测试代码
