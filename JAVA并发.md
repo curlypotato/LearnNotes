@@ -4,7 +4,7 @@
 
 **Java线程六种状态及转换**
 
-![image-20210831090722658](img/image-20210831090722658.png)
+![image-20210831090722658](https://github.com/curlypotato/LearnNotes/blob/master/img/image-20210831090722658.png)
 
 * 新建
     * 当一个线程对象被创建，但还未调用 start 方法时处于**新建**状态
@@ -15,6 +15,9 @@
 * 终结
     * 线程内代码已经执行完毕，由**可运行**进入**终结**
     * 此时会取消与底层线程关联
+    * 
+**`以上都是单向的，不可逆的`**
+
 * 阻塞
     * 当获取锁失败后，由**可运行**进入 Monitor 的阻塞队列**阻塞**，此时不占用 cpu 时间
     * 当持锁线程释放锁时，会按照一定规则唤醒阻塞队列中的**阻塞**线程，唤醒后的线程进入**可运行**状态
@@ -35,7 +38,7 @@
 
 五种状态的说法来自操作系统层面的划分
 
-![image-20210831092652602](img/image-20210831092652602.png)
+![image-20210831092652602](https://github.com/curlypotato/LearnNotes/blob/master/img/image-20210831092652602.png)
 
 * 运行态：分到 cpu 时间，能真正执行线程内代码的
 * 就绪态：有资格分到 cpu 时间，但还未轮到它的
@@ -62,7 +65,7 @@
     3. 丢弃任务 java.util.concurrent.ThreadPoolExecutor.DiscardPolicy
     4. 丢弃最早排队任务 java.util.concurrent.ThreadPoolExecutor.DiscardOldestPolicy
 
-![image-20210831093204388](img/image-20210831093204388.png)
+![image-20210831093204388](https://github.com/curlypotato/LearnNotes/blob/master/img/image-20210831093204388.png)
 
 > ***代码说明***
 >
