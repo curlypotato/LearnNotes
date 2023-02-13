@@ -69,7 +69,7 @@
 
 > ***代码说明***
 >
-> concurrency.TestThreadPoolExecutor 以较为形象的方式演示了线程池的核心组成
+> JavaLearn项目中concurrency.TestThreadPoolExecutor 以较为形象的方式演示了线程池的核心组成
 
 
 ## 3. wait vs sleep
@@ -142,7 +142,7 @@
 
 > ***代码说明***
 >
-> * concurrency.TestReentrantLock 用较为形象的方式演示 ReentrantLock 的内部结构
+> * JavaLearn项目中 concurrency.TestReentrantLock 用较为形象的方式演示 ReentrantLock 的内部结构
 
 
 ## 5. volatile
@@ -172,7 +172,8 @@
     * volatile 读写加入的屏障只能防止同一线程内的指令重排
 
 > ***代码说明***
->
+> *
+> * JavaLearn项目中
 > * concurrency.threadsafe.AddAndSubtract 演示原子性
 > * concurrency.threadsafe.ForeverLoop 演示可见性
 >   * 注意：本例经实践检验是编译器优化导致的可见性问题
@@ -195,7 +196,8 @@
     * 它需要多核 cpu 支持，且线程数不应超过 cpu 核数
 
 > ***代码说明***
->
+> *
+> * JavaLearn项目中
 > * concurrency.SyncVsCas 演示了分别使用乐观锁和悲观锁解决原子赋值
 
 
