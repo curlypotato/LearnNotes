@@ -101,3 +101,166 @@
 
 
 
+## 3. JVM 垃圾回收
+
+**要求**
+
+* 掌握垃圾回收算法
+* 掌握分代回收思想
+* 理解三色标记及漏标处理
+* 了解常见垃圾回收器
+
+**三种垃圾回收算法**
+
+标记清除法
+
+![image-20210831211008162](https://github.com/curlypotato/LearnNotes/blob/master/img/image-20210831211008162.png)
+
+解释：
+
+1. 找到 GC Root 对象，即那些一定不会被回收的对象，如正执行方法内局部变量引用的对象、静态变量引用的对象
+2. 标记阶段：沿着 GC Root 对象的引用链找，直接或间接引用到的对象加上标记
+3. 清除阶段：释放未加标记的对象占用的内存
+
+要点：
+
+* 标记速度与存活对象线性关系
+* 清除速度与内存大小线性关系
+* 缺点是会产生内存碎片
+
+
+
+标记整理法
+
+![image-20210831211641241](img/image-20210831211641241.png)
+
+解释：
+
+1. 前面的标记阶段、清理阶段与标记清除法类似
+2. 多了一步整理的动作，将存活对象向一端移动，可以避免内存碎片产生
+
+特点：
+
+* 标记速度与存活对象线性关系
+
+* 清除与整理速度与内存大小成线性关系
+* 缺点是性能上较慢
+
+
+
+标记复制法
+
+![image-20210831212125813](https://github.com/curlypotato/LearnNotes/blob/master/img/image-20210831211641241.png)
+
+解释：
+
+1. 将整个内存分成两个大小相等的区域，from 和 to，其中 to 总是处于空闲，from 存储新创建的对象
+2. 标记阶段与前面的算法类似
+3. 在找出存活对象后，会将它们从 from 复制到 to 区域，复制的过程中自然完成了碎片整理
+4. 复制完成后，交换 from 和 to 的位置即可
+
+特点：
+
+* 标记与复制速度与存活对象成线性关系
+* 缺点是会占用成倍的空间
+
+
+
+**GC 与分代回收算法**
+
+GC 的目的在于实现无用对象内存自动释放，减少内存碎片、加快分配速度
+
+GC 要点：
+
+* 回收区域是**堆内存**，不包括虚拟机栈
+* 判断无用对象，使用**可达性分析算法**，**三色标记法**标记存活对象，回收未标记对象
+* GC 具体的实现称为**垃圾回收器**
+* GC 大都采用了**分代回收思想**
+  * 理论依据是大部分对象朝生夕灭，用完立刻就可以回收，另有少部分对象会长时间存活，每次很难回收
+  * 根据这两类对象的特性将回收区域分为**新生代**和**老年代**，新生代采用标记复制法、老年代一般采用标记整理法
+* 根据 GC 的规模可以分成 **Minor GC**，**Mixed GC**，**Full GC**
+
+
+
+**分代回收**
+
+1. 伊甸园 eden，最初对象都分配到这里，与幸存区 survivor（分成 from 和 to）合称新生代，
+
+![image-20210831213622704](https://github.com/curlypotato/LearnNotes/blob/master/img/image-20210831213622704.png)
+
+2. 当伊甸园内存不足，标记伊甸园与 from（现阶段没有）的存活对象
+
+![image-20210831213640110](https://github.com/curlypotato/LearnNotes/blob/master/img/image-20210831213640110.png)
+
+3. 将存活对象采用复制算法复制到 to 中，复制完毕后，伊甸园和 from 内存都得到释放
+
+![image-20210831213657861](https://github.com/curlypotato/LearnNotes/blob/master/img/image-20210831213657861.png)
+
+4. 将 from 和 to 交换位置
+
+![image-20210831213708776](https://github.com/curlypotato/LearnNotes/blob/master/img/image-20210831213708776.png)
+
+5. 经过一段时间后伊甸园的内存又出现不足
+
+![image-20210831213724858](https://github.com/curlypotato/LearnNotes/blob/master/img/image-20210831213724858.png)
+
+6. 标记伊甸园与 from（现阶段没有）的存活对象
+
+![image-20210831213737669](https://github.com/curlypotato/LearnNotes/blob/master/img/image-20210831213737669.png)
+
+7. 将存活对象采用复制算法复制到 to 中
+
+![image-20210831213804315](https://github.com/curlypotato/LearnNotes/blob/master/img/image-20210831213804315.png)
+
+8. 复制完毕后，伊甸园和 from 内存都得到释放
+
+![image-20210831213815371](https://github.com/curlypotato/LearnNotes/blob/master/img/image-20210831213815371.png)
+
+9. 将 from 和 to 交换位置
+
+![image-20210831213826017](https://github.com/curlypotato/LearnNotes/blob/master/img/image-20210831213826017.png)
+
+10. 老年代 old，当幸存区对象熬过几次回收（最多15次），晋升到老年代（幸存区内存不足或大对象会导致提前晋升）
+
+
+
+**GC 规模**
+
+* Minor GC 发生在新生代的垃圾回收，暂停时间短
+
+* Mixed GC 新生代 + 老年代部分区域的垃圾回收，G1 收集器特有
+
+* Full GC 新生代 + 老年代完整垃圾回收，暂停时间长，**应尽力避免**
+
+
+
+**三色标记**
+
+即用三种颜色记录对象的标记状态
+
+* 黑色 – 已标记
+* 灰色 – 标记中
+* 白色 – 还未标记
+
+
+
+1. 起始的三个对象还未处理完成，用灰色表示
+
+<img src="img/image-20210831215016566.png" alt="image-20210831215016566" style="zoom:50%;" />
+
+2. 该对象的引用已经处理完成，用黑色表示，黑色引用的对象变为灰色
+
+<img src="img/image-20210831215033510.png" alt="image-20210831215033510" style="zoom:50%;" />
+
+3. 依次类推
+
+<img src="img/image-20210831215105280.png" alt="image-20210831215105280" style="zoom:50%;" />
+
+4. 沿着引用链都标记了一遍
+
+<img src="img/image-20210831215146276.png" alt="image-20210831215146276" style="zoom:50%;" />
+
+5. 最后为标记的白色对象，即为垃圾
+
+<img src="img/image-20210831215158311.png" alt="image-20210831215158311" style="zoom:50%;" />
+
