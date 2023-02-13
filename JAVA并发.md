@@ -90,7 +90,7 @@
 * 醒来时机不同
     * 执行 sleep(long) 和 wait(long) 的线程都会在等待相应毫秒后本来
     * wait(long) 和 wait() 还可以被 notify 唤醒，wait() 如果不唤醒就一直等下去
-    * 它们都可以被打断唤醒
+    * 它们都可以被打断唤醒（使用t.interrupt()方法进行打断）
 
 * 锁特性不同(`重点`)
     * wait 方法的调用必须先获取 wait 对象的锁，而 sleep 则无此限制
